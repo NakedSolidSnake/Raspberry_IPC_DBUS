@@ -2,399 +2,164 @@
   <img src="https://www.softprayog.in/images/interprocess-communication-using-dbus.png">
 </p>
 
-# DBUS
+# _DBUS_
+
+## Tópicos
+* [Introdução](#introdução)
+* [Implementação](#implementação)
+* [launch_processes](#launch_processes)
+* [button_interface](#button_interface)
+* [led_interface](#led_interface)
+* [Compilando, Executando e Matando os processos](#compilando-executando-e-matando-os-processos)
+* [Compilando](#compilando)
+* [Clonando o projeto](#clonando-o-projeto)
+* [Selecionando o modo](#selecionando-o-modo)
+* [Modo PC](#modo-pc)
+* [Modo RASPBERRY](#modo-raspberry)
+* [Executando](#executando)
+* [Interagindo com o exemplo](#interagindo-com-o-exemplo)
+* [MODO PC](#modo-pc-1)
+* [MODO RASPBERRY](#modo-raspberry-1)
+* [Matando os processos](#matando-os-processos)
+* [Conclusão](#conclusão)
+* [Referência](#referência)
+
 ## Introdução
+Preencher
+
 ## Implementação
-### Arquivos de Configuração
-#### org.solid.button.conf
+
+Para demonstrar o uso desse IPC, iremos utilizar o modelo Produtor/Consumidor, onde o processo Produtor(_button_process_) vai escrever seu estado interno no arquivo, e o Consumidor(_led_process_) vai ler o estado interno e vai aplicar o estado para si. Aplicação é composta por três executáveis sendo eles:
+* _launch_processes_ - é responsável por lançar os processos _button_process_ e _led_process_ atráves da combinação _fork_ e _exec_
+* _button_interface_ - é reponsável por ler o GPIO em modo de leitura da Raspberry Pi e escrever o estado interno no arquivo
+* _led_interface_ - é reponsável por ler do arquivo o estado interno do botão e aplicar em um GPIO configurado como saída
+
+### *launch_processes*
+
+No _main_ criamos duas variáveis para armazenar o PID do *button_process* e do *led_process*, e mais duas variáveis para armazenar o resultado caso o _exec_ venha a falhar.
+```c
+int pid_button, pid_led;
+int button_status, led_status;
+```
+
+Em seguida criamos um processo clone, se processo clone for igual a 0, criamos um _array_ de *strings* com o nome do programa que será usado pelo _exec_, em caso o _exec_ retorne, o estado do retorno é capturado e será impresso no *stdout* e aborta a aplicação. Se o _exec_ for executado com sucesso o programa *button_process* será carregado. 
+```c
+pid_button = fork();
+
+if(pid_button == 0)
+{
+    //start button process
+    char *args[] = {"./button_process", NULL};
+    button_status = execvp(args[0], args);
+    printf("Error to start button process, status = %d\n", button_status);
+    abort();
+}   
+```
+
+O mesmo procedimento é repetido novamente, porém com a intenção de carregar o *led_process*.
+
+```c
+pid_led = fork();
+
+if(pid_led == 0)
+{
+    //Start led process
+    char *args[] = {"./led_process", NULL};
+    led_status = execvp(args[0], args);
+    printf("Error to start led process, status = %d\n", led_status);
+    abort();
+}
+```
+
+## *button_interface*
+descrever o código
+## *led_interface*
+descrever o código
+
+## Compilando, Executando e Matando os processos
+Para compilar e testar o projeto é necessário instalar a biblioteca de [hardware](https://github.com/NakedSolidSnake/Raspberry_lib_hardware) necessária para resolver as dependências de configuração de GPIO da Raspberry Pi.
+
+## Compilando
+Para faciliar a execução do exemplo, o exemplo proposto foi criado baseado em uma interface, onde é possível selecionar se usará o hardware da Raspberry Pi 3, ou se a interação com o exemplo vai ser através de input feito por FIFO e o output visualizado através de LOG.
+
+### Clonando o projeto
+Pra obter uma cópia do projeto execute os comandos a seguir:
+
 ```bash
-<!DOCTYPE busconfig PUBLIC
-"-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN"
-"http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
-<busconfig>
-
-<policy user="root">
-    <allow own="org.pi.button"/>
-</policy>
-
-<policy user="pi">
-    <allow own = "org.pi.button"/>
-</policy>
-
-<policy context="default">
-    <allow send_interface="org.pi.led_process"/>
-    <allow send_destination="org.pi.led"/>
-</policy>
-
-</busconfig>
+$ git clone https://github.com/NakedSolidSnake/Raspberry_IPC_DBUS
+$ cd Raspberry_IPC_DBUS
+$ mkdir build && cd build
 ```
-#### org.solid.led.conf
+
+### Selecionando o modo
+Para selecionar o modo devemos passar para o cmake uma variável de ambiente chamada de ARCH, e pode-se passar os seguintes valores, PC ou RASPBERRY, para o caso de PC o exemplo terá sua interface preenchida com os sources presentes na pasta src/platform/pc, que permite a interação com o exemplo através de FIFO e LOG, caso seja RASPBERRY usará os GPIO's descritos no [artigo](https://github.com/NakedSolidSnake/Raspberry_lib_hardware#testando-a-instala%C3%A7%C3%A3o-e-as-conex%C3%B5es-de-hardware).
+
+#### Modo PC
 ```bash
-<!DOCTYPE busconfig PUBLIC
-"-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN"
-"http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
-<busconfig>
-
-<policy user="root">
-    <allow own="org.pi.led"/>
-</policy>
-
-<policy user="pi">
-    <allow own = "org.pi.led"/>
-</policy>
-
-<policy context="default">
-    <allow send_interface="org.pi.led_process"/>    
-</policy>
-
-</busconfig>
+$ cmake -DARCH=PC ..
+$ make
 ```
-### launch_processes.c
-```c
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 
-int main(int argc, char *argv[])
-{
-    int pid_button, pid_led;
-    int button_status, led_status;
-
-    pid_button = fork();
-
-    if(pid_button == 0)
-    {
-        //start button process
-        char *args[] = {"./button_process", NULL};
-        button_status = execvp(args[0], args);
-        printf("Error to start button process, status = %d\n", button_status);
-        abort();
-    }   
-
-    pid_led = fork();
-
-    if(pid_led == 0)
-    {
-        //Start led process
-        char *args[] = {"./led_process", NULL};
-        led_status = execvp(args[0], args);
-        printf("Error to start led process, status = %d\n", led_status);
-        abort();
-    }
-
-    return EXIT_SUCCESS;
-}
+#### Modo RASPBERRY
+```bash
+$ cmake -DARCH=RASPBERRY ..
+$ make
 ```
-### button_process.c
-```c
-/*
- *
- *     add-client.c: client program, takes two numbers as input,
- *                   sends to server for addition,
- 8                   gets result from server,
- *                   prints the result on the screen
- *
- */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdbool.h>
-#include <ctype.h>
-#include <button.h>
+## Executando
+Para executar a aplicação execute o processo _*launch_processes*_ para lançar os processos *button_process* e *led_process* que foram determinados de acordo com o modo selecionado.
 
-#include <dbus/dbus.h>
-
-#define _1MS    1000
-
-static void inputHandler(void);
-
-
-const char *const INTERFACE_NAME = "org.pi.led_process";
-const char *const SERVER_BUS_NAME = "org.pi.led";
-const char *const CLIENT_BUS_NAME = "org.pi.button";
-const char *const SERVER_OBJECT_PATH_NAME = "/org/pi/led_control";
-const char *const CLIENT_OBJECT_PATH_NAME = "/org/pi/button";
-const char *const METHOD_NAME = "led_set";
-
-static Button_t button = {
-        .gpio.pin = 7,
-        .gpio.eMode = eModeInput,
-        .ePullMode = ePullModePullUp,
-        .eIntEdge = eIntEdgeFalling,
-        // .cb = inputHandler
-    };
-
-DBusError dbus_error;
-void print_dbus_error(char *str);
-
-int main(int argc, char **argv)
-{
-    DBusConnection *conn;
-    int ret;
-    char input[80];
-    static int state = 0;
-    const char *states[] = 
-    {
-        "ON",
-        "OFF"
-    };
-
-    if(Button_init(&button))
-        return EXIT_FAILURE;
-
-    dbus_error_init(&dbus_error);
-
-    conn = dbus_bus_get(DBUS_BUS_SYSTEM, &dbus_error);
-
-    if (dbus_error_is_set(&dbus_error))
-        print_dbus_error("dbus_bus_get");
-
-    if (!conn)
-        exit(1);
-
-    // printf("Please type two numbers: ");
-    // while (fgets(input, 78, stdin) != NULL)
-    while(1)
-    {     
-        while(1)
-        {
-            if(!Button_read(&button)){
-                usleep(_1MS * 40);
-                while(!Button_read(&button));
-                usleep(_1MS * 40);
-                state ^= 0x01;
-                break;
-            }else{
-                usleep( _1MS );
-            }
-        }   
-        
-
-        // Get a well known name
-        while (1)
-        {
-            ret = dbus_bus_request_name(conn, CLIENT_BUS_NAME, 0, &dbus_error);
-
-            if (ret == DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER)
-                break;
-
-            if (ret == DBUS_REQUEST_NAME_REPLY_IN_QUEUE)
-            {
-                fprintf(stderr, "Waiting for the bus ... \n");
-                sleep(1);
-                continue;
-            }
-            if (dbus_error_is_set(&dbus_error))
-                print_dbus_error("dbus_bus_get");
-        }
-
-        DBusMessage *request;
-
-        if ((request = dbus_message_new_method_call(SERVER_BUS_NAME, SERVER_OBJECT_PATH_NAME,
-                                                    INTERFACE_NAME, METHOD_NAME)) == NULL)
-        {
-            fprintf(stderr, "Error in dbus_message_new_method_call\n");
-            exit(1);
-        }
-
-        DBusMessageIter iter;
-        dbus_message_iter_init_append(request, &iter);
-        char *ptr = states[state];
-        if (!dbus_message_iter_append_basic(&iter, DBUS_TYPE_STRING, &ptr))
-        {
-            fprintf(stderr, "Error in dbus_message_iter_append_basic\n");
-            exit(1);
-        }
-
-        
-        if (!dbus_connection_send(conn, request, NULL))
-        {
-            fprintf(stderr, "Error in dbus_connection_send_with_reply\n");
-            exit(1);
-        }        
-
-        dbus_connection_flush(conn);
-        dbus_message_unref(request);        
-
-        if (dbus_bus_release_name(conn, CLIENT_BUS_NAME, &dbus_error) == -1)
-        {
-            fprintf(stderr, "Error in dbus_bus_release_name\n");
-            exit(1);
-        }
-
-        printf("Please type two numbers: ");
-    }
-
-    return 0;
-}
-
-void print_dbus_error(char *str)
-{
-    fprintf(stderr, "%s: %s\n", str, dbus_error.message);
-    dbus_error_free(&dbus_error);
-}
-
-static void inputHandler(void)
-{
-    static int state = 0;
-    if(!Button_read(&button)){
-        usleep(_1MS * 40);
-        while(!Button_read(&button));
-        usleep(_1MS * 40);
-        state ^= 0x01;        
-        
-        
-    }
-}
+```bash
+$ cd bin
+$ ./launch_processes
 ```
-### led_process.c
-```c
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdbool.h>
-#include <unistd.h>
-#include <ctype.h>
-#include <dbus/dbus.h>
-#include <led.h>
 
-typedef void (*cb)(int led_state);
-
-static void changeLed(int state);
-
-const char *const INTERFACE_NAME = "org.pi.led_process";
-const char *const SERVER_BUS_NAME = "org.pi.led";
-const char *const OBJECT_PATH_NAME = "/org/pi/led_control";
-const char *const METHOD_NAME = "led_set";
-
-typedef struct
-{
-    const char *command;
-    cb setLed;
-    const int state;    
-}Table_t;
-
-static Table_t command[] = 
-{
-    {"ON" , changeLed, 1},
-    {"OFF", changeLed, 0}
-};
-
-DBusError dbus_error;
-void print_dbus_error(char *str);
-bool isinteger(char *ptr);
-
-LED_t led =
-    {
-        .gpio.pin = 0,
-        .gpio.eMode = eModeOutput
-    };
-
-int main(int argc, char const *argv[])
-{
-    DBusConnection *conn;
-    int ret;
-
-    if (LED_init(&led))
-        return EXIT_FAILURE;
-
-    dbus_error_init(&dbus_error);
-
-    conn = dbus_bus_get(DBUS_BUS_SYSTEM, &dbus_error);
-
-    if (!conn)
-        exit(1);
-
-    //Get a well known name
-    ret = dbus_bus_request_name(conn, SERVER_BUS_NAME, DBUS_NAME_FLAG_DO_NOT_QUEUE, &dbus_error);
-
-    if (dbus_error_is_set(&dbus_error))
-        print_dbus_error("dbus_bus_get");
-
-    if (ret != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER)
-    {
-        fprintf(stderr, "Dbus: not primary owner, ret = %d\n", ret);
-        exit(1);
-    }
-
-    // Handle request from clients
-    while (1)
-    {
-        // Block for msg from client
-        if (!dbus_connection_read_write_dispatch(conn, -1))
-        {
-            fprintf(stderr, "Not connected now.\n");
-            exit(1);
-        }
-
-        DBusMessage *message;
-
-        if ((message = dbus_connection_pop_message(conn)) == NULL)
-        {
-            fprintf(stderr, "Did not get message\n");
-            continue;
-        }
-
-        if (dbus_message_is_method_call(message, INTERFACE_NAME, METHOD_NAME))
-        {
-            char *s;
-            char *str1 = NULL, *str2 = NULL;
-            const char space[4] = " \n\t";
-            int i, j;
-            bool error = false;
-
-            if (dbus_message_get_args(message, &dbus_error, DBUS_TYPE_STRING, &s, DBUS_TYPE_INVALID))
-            {
-                printf("%s", s);
-                // Validate received message
-               
-                for(int i = 0; i < (sizeof(command)/sizeof(command[0])) ; i++){
-                    if(!strcmp(s, command[i].command)){
-                        command[i].setLed(command[i].state);
-                        break;
-                    }
-                }
-
-                dbus_connection_flush(conn);
-
-                // dbus_message_unref(dbus_error_msg);                           
-            }
-            else
-            {
-                print_dbus_error("Error getting message");
-            }
-        }
-    }
-
-    return 0;
-}
-
-bool isinteger(char *ptr)
-{
-
-    if (*ptr == '+' || *ptr == '-')
-        ptr++;
-
-    while (*ptr)
-    {
-        if (!isdigit((int)*ptr++))
-            return false;
-    }
-
-    return true;
-}
-
-void print_dbus_error(char *str)
-{
-    fprintf(stderr, "%s: %s\n", str, dbus_error.message);
-    dbus_error_free(&dbus_error);
-}
-
-static void changeLed(int state)
-{
-    LED_set(&led, (eState_t)state);
-}
+Uma vez executado podemos verificar se os processos estão rodando atráves do comando 
+```bash
+$ ps -ef | grep _process
 ```
+
+O output 
+```bash
+cssouza  16871  3449  0 07:15 pts/4    00:00:00 ./button_process
+cssouza  16872  3449  0 07:15 pts/4    00:00:00 ./led_process
+```
+## Interagindo com o exemplo
+Dependendo do modo de compilação selecionado a interação com o exemplo acontece de forma diferente
+
+### MODO PC
+Para o modo PC, precisamos abrir um terminal e monitorar os LOG's
+```bash
+$ sudo tail -f /var/log/syslog | grep LED
+```
+
+Dessa forma o terminal irá apresentar somente os LOG's referente ao exemplo.
+
+Para simular o botão, o processo em modo PC cria uma FIFO para permitir enviar comandos para a aplicação, dessa forma todas as vezes que for enviado o número 0 irá logar no terminal onde foi configurado para o monitoramento, segue o exemplo
+```bash
+colocar comando de interacao de fila
+```
+
+Output do LOG quando enviado o comando algumas vezez
+```bash
+colocar log
+```
+
+### MODO RASPBERRY
+Para o modo RASPBERRY a cada vez que o botão for pressionado irá alternar o estado do LED.
+
+## Matando os processos
+Para matar os processos criados execute o script kill_process.sh
+```bash
+$ cd bin
+$ ./kill_process.sh
+```
+
 ## Conclusão
+Preencher
+
+## Referência
+* [Link do projeto completo](https://github.com/NakedSolidSnake/Raspberry_IPC_DBUS)
+* [Mark Mitchell, Jeffrey Oldham, and Alex Samuel - Advanced Linux Programming](https://www.amazon.com.br/Advanced-Linux-Programming-CodeSourcery-LLC/dp/0735710430)
+* [fork, exec e daemon](https://github.com/NakedSolidSnake/Raspberry_fork_exec_daemon)
+* [biblioteca hardware](https://github.com/NakedSolidSnake/Raspberry_lib_hardware)

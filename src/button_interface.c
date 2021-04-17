@@ -17,6 +17,22 @@ static void DBUS_BUS_Request(DBusConnection *conn, DBusError *dbus_error);
 static DBusMessage *DBUS_Get_Message_Request(void);
 static bool DBUS_Send_Message(DBusConnection *conn, DBusMessage *request, const char *message);
 
+static void wait_press(void *object, Button_Interface *button)
+{
+    while (true)
+    {
+        if (!button->Read(object))
+        {
+            usleep(_1ms * 100);
+            break;
+        }
+        else
+        {
+            usleep(_1ms);
+        }
+    }
+}
+
 bool Button_Run(void *object, Button_Interface *button)
 {
     DBusConnection *conn;
@@ -37,15 +53,7 @@ bool Button_Run(void *object, Button_Interface *button)
 
     while(true)
     {
-        while(true)
-        {
-            if(!button->Read(object)){
-                usleep(_1ms * 100);
-                break;
-            }else{
-                usleep( _1ms );
-            }
-        }
+        wait_press(object, button);
 
         state ^= 0x01;
 
