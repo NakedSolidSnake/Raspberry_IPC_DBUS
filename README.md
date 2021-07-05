@@ -34,7 +34,7 @@ Para demonstrar o uso desse IPC, iremos utilizar o modelo Produtor/Consumidor, o
 * _button_interface_ - é reponsável por ler o GPIO em modo de leitura da Raspberry Pi e escrever o estado interno no arquivo
 * _led_interface_ - é reponsável por ler do arquivo o estado interno do botão e aplicar em um GPIO configurado como saída
 
-### *launch_processes*
+### *launch_processes.c*
 
 No _main_ criamos duas variáveis para armazenar o PID do *button_process* e do *led_process*, e mais duas variáveis para armazenar o resultado caso o _exec_ venha a falhar.
 ```c
@@ -71,10 +71,57 @@ if(pid_led == 0)
 }
 ```
 
-## *button_interface*
-descrever o código
-## *led_interface*
-descrever o código
+### *dbus_endpoint*
+```c
+#define INTERFACE_NAME          "org.pi.led_process"
+#define SERVER_BUS_NAME         "org.pi.led"
+#define CLIENT_BUS_NAME         "org.pi.button"
+#define SERVER_OBJECT_PATH_NAME "/org/pi/led_control"
+#define CLIENT_OBJECT_PATH_NAME "/org/pi/button"
+#define METHOD_NAME             "led_set"
+```
+
+### *button_interface.h*
+```c
+typedef struct 
+{
+    bool (*Init)(void *object);
+    bool (*Read)(void *object);
+    
+} Button_Interface;
+```
+
+```c
+bool Button_Run(void *object, Button_Interface *button);
+```
+
+### *button_interface.c*
+```c
+```
+```c
+```
+```c
+```
+```c
+```
+```c
+```
+
+### *led_interface.h*
+```c
+```
+```c
+```
+```c
+```
+### *led_interface.c*
+```c
+```
+```c
+```
+```c
+```
+
 
 ## Compilando, Executando e Matando os processos
 Para compilar e testar o projeto é necessário instalar a biblioteca de [hardware](https://github.com/NakedSolidSnake/Raspberry_lib_hardware) necessária para resolver as dependências de configuração de GPIO da Raspberry Pi.
@@ -163,3 +210,4 @@ Preencher
 * [Mark Mitchell, Jeffrey Oldham, and Alex Samuel - Advanced Linux Programming](https://www.amazon.com.br/Advanced-Linux-Programming-CodeSourcery-LLC/dp/0735710430)
 * [fork, exec e daemon](https://github.com/NakedSolidSnake/Raspberry_fork_exec_daemon)
 * [biblioteca hardware](https://github.com/NakedSolidSnake/Raspberry_lib_hardware)
+* [softprayog](https://www.softprayog.in/programming/d-bus-tutorial)
