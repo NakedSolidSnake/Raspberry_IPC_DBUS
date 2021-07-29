@@ -151,32 +151,218 @@ bool Button_Run(void *object, Button_Interface *button);
 ```
 
 ### *button_interface.c*
+
 ```c
+bool Button_Run(void *object, Button_Interface *button)
+{
+    DBusConnection *conn;
+    DBusError dbus_error;
+    int state = 0;
+    const char *states[] = 
+    {
+        "ON",
+        "OFF"
+    };
+
+    if(button->Init(object) == false)
+        return false;
+
+    conn = DBUS_Init(&dbus_error);
+    if(!conn)
+        return false;
+
+    while(true)
+    {
+        wait_press(object, button);
+
+        state ^= 0x01;
+
+        DBUS_BUS_Request(conn, &dbus_error);
+
+        DBusMessage *request = DBUS_Get_Message_Request();
+        if(request == NULL)
+            return false;
+        
+        DBUS_Send_Message(conn, request, states[state]);
+
+        dbus_connection_flush(conn);
+        dbus_message_unref(request);        
+
+        if (dbus_bus_release_name(conn, CLIENT_BUS_NAME, &dbus_error) == -1)
+            return false;
+    }
+
+    return false;
+}
 ```
 ```c
+static void print_dbus_error(DBusError *dbus_error, char *str)
+{
+    fprintf(stderr, "%s: %s\n", str, dbus_error->message);
+    dbus_error_free(dbus_error);
+}
 ```
 ```c
+static DBusConnection *DBUS_Init(DBusError *dbus_error)
+{
+    DBusConnection *conn;
+
+    dbus_error_init(dbus_error);
+
+    conn = dbus_bus_get(DBUS_BUS_SYSTEM, dbus_error);
+
+    if (dbus_error_is_set(dbus_error))
+        print_dbus_error(dbus_error, "dbus_bus_get");
+
+    return conn;
+}
 ```
 ```c
+static void DBUS_BUS_Request(DBusConnection *conn, DBusError *dbus_error)
+{
+    int ret;
+    while (true)
+    {
+        ret = dbus_bus_request_name(conn, CLIENT_BUS_NAME, 0, dbus_error);
+
+        if (ret == DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER)
+            break;
+
+        if (ret == DBUS_REQUEST_NAME_REPLY_IN_QUEUE)
+        {
+            sleep(1);
+            continue;
+        }
+        if (dbus_error_is_set(dbus_error))
+            print_dbus_error(dbus_error, "dbus_bus_get");
+    }
+}
 ```
 ```c
+static DBusMessage *DBUS_Get_Message_Request(void)
+{
+    return dbus_message_new_method_call(SERVER_BUS_NAME, SERVER_OBJECT_PATH_NAME,
+                                                    INTERFACE_NAME, METHOD_NAME);
+}
+```
+```c
+static bool DBUS_Send_Message(DBusConnection *conn, DBusMessage *request, const char *message)
+{
+    DBusMessageIter iter;
+    dbus_message_iter_init_append(request, &iter);
+
+    if (!dbus_message_iter_append_basic(&iter, DBUS_TYPE_STRING, &message))
+        return false;
+
+    if (!dbus_connection_send(conn, request, NULL))
+        return false;
+
+    return true;
+}
 ```
 
 ### *led_interface.h*
 ```c
+typedef struct 
+{
+    bool (*Init)(void *object);
+    bool (*Set)(void *object, uint8_t state);
+} LED_Interface;
 ```
 ```c
-```
-```c
-```
-### *led_interface.c*
-```c
-```
-```c
-```
-```c
+bool LED_Run(void *object, LED_Interface *led);
 ```
 
+### *led_interface.c*
+```c
+bool LED_Run(void *object, LED_Interface *led)
+{
+    DBusConnection *conn;
+    DBusError dbus_error;
+
+    if (led->Init(object) == false)
+        return false;
+
+    conn = DBUS_Init(&dbus_error);
+    if(!conn)
+        return false;
+
+    if (DBUS_BUS_Request(conn, &dbus_error) == false)
+        return false;
+
+    while (true)
+    {
+        if (!dbus_connection_read_write_dispatch(conn, -1))
+        {
+           break;
+        }
+
+        DBusMessage *message;
+
+        if ((message = dbus_connection_pop_message(conn)) == NULL)
+            continue;
+
+        if (dbus_message_is_method_call(message, INTERFACE_NAME, METHOD_NAME))
+        {
+            char *s;
+
+            if (dbus_message_get_args(message, &dbus_error, DBUS_TYPE_STRING, &s, DBUS_TYPE_INVALID))
+            {
+                if(!strcmp(s, "ON"))
+                {
+                    led->Set(object, 1);
+                }
+                else if(!strcmp(s, "OFF"))
+                {
+                    led->Set(object, 0);
+                }
+
+                dbus_connection_flush(conn);                                          
+            }
+            else
+            {
+                print_dbus_error(&dbus_error, "Error getting message");
+            }
+            dbus_message_unref(message); 
+        }
+    }
+    return false;
+}
+```
+```c
+static void print_dbus_error(DBusError *dbus_error, char *str)
+{
+    fprintf(stderr, "%s: %s\n", str, dbus_error->message);
+    dbus_error_free(dbus_error);
+}
+```
+```c
+static DBusConnection *DBUS_Init(DBusError *dbus_error)
+{
+    DBusConnection *conn;
+
+    dbus_error_init(dbus_error);
+
+    conn = dbus_bus_get(DBUS_BUS_SYSTEM, dbus_error);
+
+    if (dbus_error_is_set(dbus_error))
+        print_dbus_error(dbus_error, "dbus_bus_get");
+
+    return conn;
+}
+```
+```c
+static bool DBUS_BUS_Request(DBusConnection *conn, DBusError *dbus_error)
+{
+    int ret;
+    ret = dbus_bus_request_name(conn, SERVER_BUS_NAME, DBUS_NAME_FLAG_DO_NOT_QUEUE, dbus_error);    
+
+    if (ret != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER)
+        return false;
+
+    return true;
+}
+```
 
 ## Compilando, Executando e Matando os processos
 Para compilar e testar o projeto é necessário instalar a biblioteca de [hardware](https://github.com/NakedSolidSnake/Raspberry_lib_hardware) necessária para resolver as dependências de configuração de GPIO da Raspberry Pi.
@@ -320,7 +506,7 @@ $ ./kill_process.sh
 ```
 
 ## Conclusão
-Preencher
+D-Bus é uma forma de comunicação entre processos muito versátil pois garante a implementação de forma desacoplada entre os processos. Projetos como KDE, Gnome, Systemd, Bluez, Network-manager fazem uso desse IPC. Garante segurança no uso desses serviços atráves de permissões, ou seja, não basta somente saber do serviço, mas também deve-se ter a permissão de poder usá-lo. A desvantagem que dbus possui é não poder realizar comunicação entre nodes, dessa forma caracteriza que cada forma de IPC possui sua área de atuação.
 
 ## Referência
 * [Link do projeto completo](https://github.com/NakedSolidSnake/Raspberry_IPC_DBUS)
