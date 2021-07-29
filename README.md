@@ -45,7 +45,6 @@ Para demonstrar o relacionamento entre esse elementos segue uma imagem:
   <img src="./docs/dbus_general.jpg">
 </p>
 
-
 ## Políticas 
 Para poder ter acesso ao barramento é necessário registrar e conceder permissão para quem vai utilizar os serviços. Esses arquivos são representados no formato XML e ficam nos diretórios /etc/dbus-1/system.d e /etc/dbus-1/session.d
 Para exemplificar a implementação desse arquivos é apresentado o arquivo de configuração utilizado para o processo de botão
@@ -78,10 +77,16 @@ Para auxiliar o desenvolvimento usando o D-Bus existem algumas ferramentas que p
 
 ## Implementação
 
-Para demonstrar o uso desse IPC, iremos utilizar o modelo Produtor/Consumidor, onde o processo Produtor(_button_process_) vai escrever seu estado interno no arquivo, e o Consumidor(_led_process_) vai ler o estado interno e vai aplicar o estado para si. Aplicação é composta por três executáveis sendo eles:
+Para demonstrar o uso desse IPC, iremos utilizar o modelo Produtor/Consumidor, onde o processo Produtor(_button_process_) vai escrever seu estado no barramento, e o Consumidor(_led_process_) vai ler o estado do barramento e aplicar o estado para si. Aplicação é composta por três executáveis sendo eles:
 * _launch_processes_ - é responsável por lançar os processos _button_process_ e _led_process_ através da combinação _fork_ e _exec_
-* _button_interface_ - é responsável por ler o GPIO em modo de leitura da Raspberry Pi e escrever o estado interno no arquivo
-* _led_interface_ - é responsável por ler do arquivo o estado interno do botão e aplicar em um GPIO configurado como saída
+* _button_interface_ - é responsável por ler o GPIO em modo de leitura da Raspberry Pi e escrever o estado no barramento
+* _led_interface_ - é responsável por ler do barramento o estado do botão e aplicar em um GPIO configurado como saída
+
+O diagrama para a aplicação de LED fica da seguinte forma:
+
+<p align="center">
+  <img src="./docs/dbus_application.jpg">
+</p>
 
 ### *launch_processes.c*
 
@@ -121,7 +126,7 @@ if(pid_led == 0)
 ```
 
 ### *dbus_endpoint.h*
-Aqui é definido os
+Aqui é definido os nomes dos componentes
 ```c
 #define INTERFACE_NAME          "org.pi.led_process"
 #define SERVER_BUS_NAME         "org.pi.led"
@@ -233,8 +238,8 @@ $ ps -ef | grep _process
 
 O output 
 ```bash
-cssouza  16871  3449  0 07:15 pts/4    00:00:00 ./button_process
-cssouza  16872  3449  0 07:15 pts/4    00:00:00 ./led_process
+root     14705  2417  0 jul28 pts/3    00:00:00 ./button_process
+root     14706  2417  0 jul28 pts/3    00:00:00 ./led_process
 ```
 ## Interagindo com o exemplo
 Dependendo do modo de compilação selecionado a interação com o exemplo acontece de forma diferente
@@ -249,12 +254,16 @@ Dessa forma o terminal irá apresentar somente os LOG's referente ao exemplo.
 
 Para simular o botão, o processo em modo PC cria uma FIFO para permitir enviar comandos para a aplicação, dessa forma todas as vezes que for enviado o número 0 irá logar no terminal onde foi configurado para o monitoramento, segue o exemplo
 ```bash
-colocar comando de interacao de fila
+$ sudo su
+# echo '0' > /tmp/dbus_file
 ```
 
 Output do LOG quando enviado o comando algumas vezez
 ```bash
-colocar log
+Jul 28 09:05:02 dell-cssouza LED DBUS[14706]: LED Status: Off
+Jul 28 09:05:04 dell-cssouza LED DBUS[14706]: LED Status: On
+Jul 28 09:05:04 dell-cssouza LED DBUS[14706]: LED Status: Off
+Jul 28 09:05:05 dell-cssouza LED DBUS[14706]: LED Status: On
 ```
 
 ### MODO RASPBERRY
