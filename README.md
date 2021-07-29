@@ -25,14 +25,63 @@
 * [Referência](#referência)
 
 ## Introdução
-Preencher
+O D-Bus foi criado em 2002 e faz parte do projeto freedesktop.org, é mantido pela RedHat e pela comunidade. D-Bus é um IPC projetado com o objetivo de servir como camada intermediária(middleware) para ambientes desktop. Um projeto conhecido como GNOME faz uso desse mecanismo. D-Bus diferente de outros mecanismos como shared memory, queues e sockets carece de recursos, o que o torna rápido e simples. D-Bus não é um substituto para os outros IPC, cada IPC tem um propósito. 
+
+## D-Bus
+O conceito principal no D-Bus é o barramento. Através do canal é possível chamadas de métodos, enviar sinais e escutar sinais. Existe dois tipos de barramento: o barramento de sessão e o barramento de sistema.
+* Session Bus - é usado para a comunicação de aplicações que são conectadas em uma mesma sessão desktop.
+* System Bus - é usado quando aplicações rodando em sessões separadas que precisam se comunicar entre si.
+
+Um barramento D-Bus no sistema está na forma de bus daemon, que é um processo especializado em repassar as mensagens de um processo para o outro.
+
+O D-Bus trabalha com diversos elementos sendo: Serviços, Objetos, Interfaces e Clientes, a seguir é apresentado as definições de cada elemento:
+* Serviços - Um serviço é uma coleção de **Objetos** que fornece algum recurso, e é apresentado no formato well-know name que facilita a leitura
+* Objetos - Objetos são parte de um serviço, podem ser criados e removidos dinamicamente. Para acessar um objeto é usado o formato object path que é identico ao caminho de diretorio /org/servico/alguma_coisa. Objetos podem implementar uma ou mais interfaces.
+* Interfaces - São as implementações, os métodos, sinais e propriedades
+
+Para demonstrar o relacionamento entre esse elementos segue uma imagem:
+
+<p align="center">
+  <img src="./docs/dbus_general.jpg">
+</p>
+
+
+## Políticas 
+Para poder ter acesso ao barramento é necessário registrar e conceder permissão para quem vai utilizar os serviços. Esses arquivos são representados no formato XML e ficam nos diretórios /etc/dbus-1/system.d e /etc/dbus-1/session.d
+Para exemplificar a implementação desse arquivos é apresentado o arquivo de configuração utilizado para o processo de botão
+```bash
+<!DOCTYPE busconfig PUBLIC
+"-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN"
+"http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
+<busconfig>
+
+<policy user="root">
+    <allow own="org.pi.button"/>
+</policy>
+
+<policy user="pi">
+    <allow own = "org.pi.button"/>
+</policy>
+
+<policy context="default">
+    <allow send_interface="org.pi.led_process"/>
+    <allow send_destination="org.pi.led"/>
+</policy>
+
+</busconfig>
+```
+
+Nesse arquivo os usuários root e pi recebem a permissão de utilização desse serviço. Permite envio de dados para a interface org.pi.led_process que que tem como destino o serviço org.pi.led_process.
+
+## Tools
+Para auxiliar o desenvolvimento usando o D-Bus existem algumas ferramentas que permite enviar dados para o barramento e monitorá-lo, sendo elas dbus-send e dbus-monitor.
 
 ## Implementação
 
 Para demonstrar o uso desse IPC, iremos utilizar o modelo Produtor/Consumidor, onde o processo Produtor(_button_process_) vai escrever seu estado interno no arquivo, e o Consumidor(_led_process_) vai ler o estado interno e vai aplicar o estado para si. Aplicação é composta por três executáveis sendo eles:
-* _launch_processes_ - é responsável por lançar os processos _button_process_ e _led_process_ atráves da combinação _fork_ e _exec_
-* _button_interface_ - é reponsável por ler o GPIO em modo de leitura da Raspberry Pi e escrever o estado interno no arquivo
-* _led_interface_ - é reponsável por ler do arquivo o estado interno do botão e aplicar em um GPIO configurado como saída
+* _launch_processes_ - é responsável por lançar os processos _button_process_ e _led_process_ através da combinação _fork_ e _exec_
+* _button_interface_ - é responsável por ler o GPIO em modo de leitura da Raspberry Pi e escrever o estado interno no arquivo
+* _led_interface_ - é responsável por ler do arquivo o estado interno do botão e aplicar em um GPIO configurado como saída
 
 ### *launch_processes.c*
 
@@ -71,7 +120,8 @@ if(pid_led == 0)
 }
 ```
 
-### *dbus_endpoint*
+### *dbus_endpoint.h*
+Aqui é definido os
 ```c
 #define INTERFACE_NAME          "org.pi.led_process"
 #define SERVER_BUS_NAME         "org.pi.led"
@@ -152,6 +202,21 @@ $ make
 $ cmake -DARCH=RASPBERRY ..
 $ make
 ```
+#### Instalando os arquivos de configurações do D-Bus
+Após a compilação do projeto para que os arquivos sejam instalados no diretório pertinente as permissões de uso do D-Bus basta executar:
+```bash
+$ sudo make install
+```
+
+Após a instalação é importante verificar se os arquivos de fato constam no diretório
+```bash
+$ ls /etc/dbus-1/system.d | grep solid
+```
+Output
+```bash
+org.solid.button.conf
+org.solid.led.conf
+```
 
 ## Executando
 Para executar a aplicação execute o processo _*launch_processes*_ para lançar os processos *button_process* e *led_process* que foram determinados de acordo com o modo selecionado.
@@ -195,6 +260,49 @@ colocar log
 ### MODO RASPBERRY
 Para o modo RASPBERRY a cada vez que o botão for pressionado irá alternar o estado do LED.
 
+## Monitorando 
+Para monitorar a interface que foi implementada é usada a ferramenta dbus-monitor. Com essa ferramente é possível ver os dados que trafegam nesse barramento. Para monitorar uma interface específica é possível filtrar passando o argumento interface com a interface desejada. No exemplo fica assim:
+
+```bash
+sudo dbus-monitor --system type=signal interface=org.pi.led_process 
+```
+
+Para saber mais sobre a ferramenta use o man pages
+```bash
+$ man dbus-monitor
+```
+## Enviando comandos usando o dbus-send
+Para poder enviar dados para o barramento é possível fazer uso da ferramenta dbus-send
+
+```bash
+$ dbus-send --system --print-reply --reply-timeout=[ms] --dest=[service] [object] [interface].[method] <type:data>
+```
+
+Para enviar comandos para o barramento é necessário ter a permissão de acesso,para este exemplo será usado o usuário root
+
+```bash
+sudo su
+```
+
+Então o comando fica da seguinte forma
+```bash
+$ dbus-send --system --print-reply --reply-timeout=1 --dest=org.pi.led /org/pi/led_control org.pi.led_process.led_set string:"OFF"
+```
+
+Nesse ponto vai gerar um erro devido a aplicação não responder. Com o monitoramento ligado é possível ver a seguinte saída:
+
+Output
+```bash
+method call time=1627546830.262349 sender=:1.802 -> destination=org.pi.led serial=2 path=/org/pi/led_control; interface=org.pi.led_process; member=led_set
+   string "OFF"
+```
+
+Existe uma ferramenta gráfica conhecida como d-feet verifique as referências para saber mais.
+
+Para saber mais sobre a ferramenta use o man pages
+```bash
+$ man dbus-send
+```
 ## Matando os processos
 Para matar os processos criados execute o script kill_process.sh
 ```bash
@@ -211,3 +319,5 @@ Preencher
 * [fork, exec e daemon](https://github.com/NakedSolidSnake/Raspberry_fork_exec_daemon)
 * [biblioteca hardware](https://github.com/NakedSolidSnake/Raspberry_lib_hardware)
 * [softprayog](https://www.softprayog.in/programming/d-bus-tutorial)
+* [Material de Treinamento](http://static.maemo.org:81/static/e/e81e7408fdb811dd80aed97025304c974c97_d-bus-the_message_bus_system.pdf)
+* [Understand D-Bus](https://bootlin.com/pub/conferences/2016/meetup/dbus/josserand-dbus-meetup.pdf)

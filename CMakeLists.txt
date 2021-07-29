@@ -47,7 +47,7 @@ if (PKG_CONFIG_FOUND)
       ${CMAKE_CURRENT_LIST_DIR}/include  
       )
     add_definitions(${DBUS_CFLAGS} ${DBUS_CFLAGS_OTHER})
-    install(TARGETS interface DESTINATION bin)
+    # install(TARGETS interface DESTINATION bin)
 
   endif()
 endif()
@@ -65,7 +65,7 @@ target_include_directories(launch_processes
   ${CMAKE_CURRENT_LIST_DIR}/lib  
   )
 
-install(TARGETS launch_processes DESTINATION bin)
+# install(TARGETS launch_processes DESTINATION bin)
 
 # build led_process
 add_executable(led_process "")
@@ -82,7 +82,7 @@ target_include_directories(led_process
   ${CMAKE_CURRENT_LIST_DIR}/include  
   )
 
-install(TARGETS led_process DESTINATION bin)
+# install(TARGETS led_process DESTINATION bin)
 
 # build button_process
 add_executable(button_process "")
@@ -99,7 +99,7 @@ target_include_directories(button_process
   ${CMAKE_CURRENT_LIST_DIR}/include  
   )
 
-install(TARGETS button_process DESTINATION bin)
+# install(TARGETS button_process DESTINATION bin)
 
 file(COPY config/kill_process.sh DESTINATION bin)
 
