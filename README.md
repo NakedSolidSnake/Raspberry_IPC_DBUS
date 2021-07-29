@@ -85,7 +85,7 @@ Para demonstrar o uso desse IPC, iremos utilizar o modelo Produtor/Consumidor, o
 O diagrama para a aplicação de LED fica da seguinte forma:
 
 <p align="center">
-  <img src="./docs/dbus_application.jpg">
+  <img src="./docs/dbus-application.jpg">
 </p>
 
 ### *launch_processes.c*
