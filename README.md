@@ -75,6 +75,9 @@ Nesse arquivo os usuários root e pi recebem a permissão de utilização desse 
 ## Tools
 Para auxiliar o desenvolvimento usando o D-Bus existem algumas ferramentas que permite enviar dados para o barramento e monitorá-lo, sendo elas dbus-send e dbus-monitor.
 
+## API
+A API referente ao dbus é extensa segue [link](https://dbus.freedesktop.org/doc/api/html/index.html) para consulta das funções utilizadas no exemplo
+
 ## Implementação
 
 Para demonstrar o uso desse IPC, iremos utilizar o modelo Produtor/Consumidor, onde o processo Produtor(_button_process_) vai escrever seu estado no barramento, e o Consumidor(_led_process_) vai ler o estado do barramento e aplicar o estado para si. Aplicação é composta por três executáveis sendo eles:
@@ -137,6 +140,7 @@ Aqui é definido os nomes dos componentes
 ```
 
 ### *button_interface.h*
+Para usar a interface do botão precisa implementar essas duas callbacks para permitir o seu uso.
 ```c
 typedef struct 
 {
@@ -145,13 +149,13 @@ typedef struct
     
 } Button_Interface;
 ```
-
+A assinatura do uso da interface corresponde ao contexto do botão, que depende do modo selecionado e a interface do botão devidamente preenchida.
 ```c
 bool Button_Run(void *object, Button_Interface *button);
 ```
 
 ### *button_interface.c*
-
+Aqui é criado algumas variáveis, **conn** que representa o contexto no qual irá conter as informações sobre a conexão com o barramento, **dbus_error** que irá apresentar os resultados de algumas funções para poder ser apresentada, **state** que é o estado interno do botão e uma lista de comando que representa a mensagem a ser enviada. Logo em seguida é feita a inicialização do botão e do D-Bus, após a inicilização fica em um loop aguardando o pressionamento do botão para alterar o estado interno, requisita o barramento, requisita o serviço no qual quer enviar a mensagem, realiza o envio e libera os recursos, retornando ao início dessa forma aguardando um novo pressionamento.
 ```c
 bool Button_Run(void *object, Button_Interface *button)
 {
@@ -195,6 +199,8 @@ bool Button_Run(void *object, Button_Interface *button)
     return false;
 }
 ```
+
+Apresenta qual o erro que ocorreu.
 ```c
 static void print_dbus_error(DBusError *dbus_error, char *str)
 {
@@ -202,6 +208,8 @@ static void print_dbus_error(DBusError *dbus_error, char *str)
     dbus_error_free(dbus_error);
 }
 ```
+
+Inicia o D-Bus em modo bus system.
 ```c
 static DBusConnection *DBUS_Init(DBusError *dbus_error)
 {
@@ -217,6 +225,7 @@ static DBusConnection *DBUS_Init(DBusError *dbus_error)
     return conn;
 }
 ```
+Requisita o serviço no qual quer se comunicar.
 ```c
 static void DBUS_BUS_Request(DBusConnection *conn, DBusError *dbus_error)
 {
@@ -238,6 +247,7 @@ static void DBUS_BUS_Request(DBusConnection *conn, DBusError *dbus_error)
     }
 }
 ```
+Requisita o método no qual quer enviar a mensagem para um determinado objeto referente ao serviço.
 ```c
 static DBusMessage *DBUS_Get_Message_Request(void)
 {
@@ -245,6 +255,7 @@ static DBusMessage *DBUS_Get_Message_Request(void)
                                                     INTERFACE_NAME, METHOD_NAME);
 }
 ```
+Concatena a mensagem e envia para o serviço.
 ```c
 static bool DBUS_Send_Message(DBusConnection *conn, DBusMessage *request, const char *message)
 {
@@ -262,6 +273,7 @@ static bool DBUS_Send_Message(DBusConnection *conn, DBusMessage *request, const 
 ```
 
 ### *led_interface.h*
+Para realizar o uso da interface de LED é necessário preencher os callbacks que serão utilizados pela implementação da interface, sendo a inicialização e a função que altera o estado do LED.
 ```c
 typedef struct 
 {
@@ -269,11 +281,13 @@ typedef struct
     bool (*Set)(void *object, uint8_t state);
 } LED_Interface;
 ```
+A assinatura do uso da interface corresponde ao contexto do LED, que depende do modo selecionado e a interface do LED devidamente preenchida.
 ```c
 bool LED_Run(void *object, LED_Interface *led);
 ```
 
 ### *led_interface.c*
+Nessa função o LED é inicializado, 
 ```c
 bool LED_Run(void *object, LED_Interface *led)
 {
@@ -329,6 +343,7 @@ bool LED_Run(void *object, LED_Interface *led)
     return false;
 }
 ```
+Apresenta qual o erro que ocorreu.
 ```c
 static void print_dbus_error(DBusError *dbus_error, char *str)
 {
@@ -336,6 +351,8 @@ static void print_dbus_error(DBusError *dbus_error, char *str)
     dbus_error_free(dbus_error);
 }
 ```
+
+Inicializa o D-Bus requisitando o modo bus system
 ```c
 static DBusConnection *DBUS_Init(DBusError *dbus_error)
 {
@@ -351,6 +368,8 @@ static DBusConnection *DBUS_Init(DBusError *dbus_error)
     return conn;
 }
 ```
+
+Requisita o serviço no qual quer se comunicar
 ```c
 static bool DBUS_BUS_Request(DBusConnection *conn, DBusError *dbus_error)
 {
