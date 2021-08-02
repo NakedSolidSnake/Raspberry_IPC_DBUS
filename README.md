@@ -155,7 +155,7 @@ bool Button_Run(void *object, Button_Interface *button);
 ```
 
 ### *button_interface.c*
-Aqui é criado algumas variáveis, **conn** que representa o contexto no qual irá conter as informações sobre a conexão com o barramento, **dbus_error** que irá apresentar os resultados de algumas funções para poder ser apresentada, **state** que é o estado interno do botão e uma lista de comando que representa a mensagem a ser enviada. Logo em seguida é feita a inicialização do botão e do D-Bus, após a inicilização fica em um loop aguardando o pressionamento do botão para alterar o estado interno, requisita o barramento, requisita o serviço no qual quer enviar a mensagem, realiza o envio e libera os recursos, retornando ao início dessa forma aguardando um novo pressionamento.
+Aqui é criado algumas variáveis, **conn** que representa o contexto no qual irá conter as informações sobre a conexão com o barramento, **dbus_error** que irá apresentar os resultados de algumas funções para poder ser apresentada, **state** que é o estado interno do botão e uma lista de comando que representa a mensagem a ser enviada. Logo em seguida é feita a inicialização do botão e do D-Bus, após a inicialização fica em um loop aguardando o pressionamento do botão para alterar o estado interno, requisita o barramento, requisita o serviço no qual quer enviar a mensagem, realiza o envio e libera os recursos, retornando ao início dessa forma aguardando um novo pressionamento.
 ```c
 bool Button_Run(void *object, Button_Interface *button)
 {
@@ -287,7 +287,7 @@ bool LED_Run(void *object, LED_Interface *led);
 ```
 
 ### *led_interface.c*
-Nessa função o LED é inicializado, 
+Aqui é criado algumas variáveis, **conn** que representa o contexto no qual irá conter as informações sobre a conexão com o barramento, **dbus_error** que irá apresentar os resultados de algumas funções para poder ser apresentada. Logo em seguida é feita a inicialização do LED e do D-Bus, após a inicialização requisita qual o serviço que vai se comunicar. No loop fica aguardando alguma mensagem chegar, caso sim verifica se é referente a interface e o método, recupera a mensagem aplica caso for reconhecida pela aplicação e libera os recursos.
 ```c
 bool LED_Run(void *object, LED_Interface *led)
 {
