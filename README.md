@@ -433,7 +433,7 @@ Para executar a aplicação execute o processo _*launch_processes*_ para lançar
 
 ```bash
 $ cd bin
-$ ./launch_processes
+$ sudo ./launch_processes
 ```
 
 Uma vez executado podemos verificar se os processos estão rodando através do comando: 
