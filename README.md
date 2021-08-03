@@ -35,8 +35,8 @@ O conceito principal no D-Bus é o barramento. Através do canal é possível ch
 Um barramento D-Bus no sistema está na forma de bus daemon, que é um processo especializado em repassar as mensagens de um processo para o outro.
 
 O D-Bus trabalha com diversos elementos sendo: Serviços, Objetos, Interfaces e Clientes, a seguir é apresentado as definições de cada elemento:
-* Serviços - Um serviço é uma coleção de **Objetos** que fornece algum recurso, e é apresentado no formato well-know name que facilita a leitura
-* Objetos - Objetos são parte de um serviço, podem ser criados e removidos dinamicamente. Para acessar um objeto é usado o formato object path que é identico ao caminho de diretorio /org/servico/alguma_coisa. Objetos podem implementar uma ou mais interfaces.
+* Serviços - Um serviço é uma coleção de **Objetos** que fornece algum recurso, sendo apresentado no formato *well-know name* que facilita a leitura
+* Objetos - Objetos são parte de um serviço, podem ser criados e removidos dinamicamente. Para acessar um objeto é usado o formato object path que é idêntico ao caminho de diretorio */org/servico/alguma_coisa*. Objetos podem implementar uma ou mais interfaces.
 * Interfaces - São as implementações, os métodos, sinais e propriedades
 
 Para demonstrar o relacionamento entre esse elementos segue uma imagem:
@@ -45,9 +45,9 @@ Para demonstrar o relacionamento entre esse elementos segue uma imagem:
   <img src="./docs/dbus_general.jpg">
 </p>
 
-## Políticas 
+## Permissões 
 Para poder ter acesso ao barramento é necessário registrar e conceder permissão para quem vai utilizar os serviços. Esses arquivos são representados no formato XML e ficam nos diretórios /etc/dbus-1/system.d e /etc/dbus-1/session.d
-Para exemplificar a implementação desse arquivos é apresentado o arquivo de configuração utilizado para o processo de botão
+Para exemplificar a implementação desses arquivos é apresentado o arquivo de configuração utilizado para o processo de botão
 ```bash
 <!DOCTYPE busconfig PUBLIC
 "-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN"
@@ -387,7 +387,7 @@ static bool DBUS_BUS_Request(DBusConnection *conn, DBusError *dbus_error)
 Para compilar e testar o projeto é necessário instalar a biblioteca de [hardware](https://github.com/NakedSolidSnake/Raspberry_lib_hardware) necessária para resolver as dependências de configuração de GPIO da Raspberry Pi.
 
 ## Compilando
-Para faciliar a execução do exemplo, o exemplo proposto foi criado baseado em uma interface, onde é possível selecionar se usará o hardware da Raspberry Pi 3, ou se a interação com o exemplo vai ser através de input feito por FIFO e o output visualizado através de LOG.
+Para facilitar a execução do exemplo, o exemplo proposto foi criado baseado em uma interface, onde é possível selecionar se usará o hardware da Raspberry Pi 3, ou se a interação com o exemplo vai ser através de input feito por FIFO e o output visualizado através de LOG.
 
 ### Clonando o projeto
 Pra obter uma cópia do projeto execute os comandos a seguir:
@@ -436,7 +436,7 @@ $ cd bin
 $ ./launch_processes
 ```
 
-Uma vez executado podemos verificar se os processos estão rodando atráves do comando 
+Uma vez executado podemos verificar se os processos estão rodando através do comando: 
 ```bash
 $ ps -ef | grep _process
 ```
@@ -457,7 +457,7 @@ $ sudo tail -f /var/log/syslog | grep LED
 
 Dessa forma o terminal irá apresentar somente os LOG's referente ao exemplo.
 
-Para simular o botão, o processo em modo PC cria uma FIFO para permitir enviar comandos para a aplicação, dessa forma todas as vezes que for enviado o número 0 irá logar no terminal onde foi configurado para o monitoramento, segue o exemplo
+Para simular o botão, o processo em modo PC cria uma FIFO para permitir enviar comandos para a aplicação, dessa forma todas às vezes que for enviado o número 0 irá logar no terminal onde foi configurado para o monitoramento, segue o exemplo
 ```bash
 $ sudo su
 # echo '0' > /tmp/dbus_file
@@ -525,7 +525,11 @@ $ ./kill_process.sh
 ```
 
 ## Conclusão
-D-Bus é uma forma de comunicação entre processos muito versátil pois garante a implementação de forma desacoplada entre os processos. Projetos como KDE, Gnome, Systemd, Bluez, Network-manager fazem uso desse IPC. Garante segurança no uso desses serviços atráves de permissões, ou seja, não basta somente saber do serviço, mas também deve-se ter a permissão de poder usá-lo. A desvantagem que dbus possui é não poder realizar comunicação entre nodes, dessa forma caracteriza que cada forma de IPC possui sua área de atuação.
+D-Bus é uma forma de comunicação entre processos muito versátil, pois garante a implementação de forma desacoplada entre os processos. Projetos como KDE, Gnome, Systemd, Bluez, Network-manager fazem uso desse IPC. Garante segurança no uso desses serviços através de permissões, ou seja, não basta somente saber da existência serviço, mas também deve-se ter a permissão de poder usá-lo. A desvantagem que dbus possui é não poder realizar comunicação entre nodes, dessa forma caracteriza que cada forma de IPC possui sua área de atuação.
+
+## Agradecimentos
+Bom chegamos ao fim de uma série tão extensa e cheia de conteúdo e exemplos práticos. Espero que tenham gostado e quero deixar os meus agradecimentos pelo apoio e feedback recebido durante essa jornada.
+Gostaria de agradecer ao Embarcados por permitir nós conceder essa gama de experiência compartilhada pelos nossos colegas. Gostaria de agradecer ao [Fábio Souza](https://www.embarcados.com.br/autor/fabio-souza/) pelo primeiro contato quando ainda estava receoso sobre como meus artigos seriam recepcionados. Obrigado Fábio pela força. Ao [Thiago Lima](https://www.embarcados.com.br/autor/thiagolima/) pela forma que apresentou e recomendou meus artigos, meu muito obrigado. Ao [Augusto](https://www.linkedin.com/in/augusto-vieira-b38289145/) que meu ajudou testando todos os exemplos e atuando como revisor final. E em especial a comunidade de receber os meus estudos de forma tão positiva, isso só me incentiva a continuar escrevendo. Obrigado a todos.
 
 ## Referência
 * [Link do projeto completo](https://github.com/NakedSolidSnake/Raspberry_IPC_DBUS)
